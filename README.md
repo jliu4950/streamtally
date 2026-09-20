@@ -70,6 +70,9 @@ harness compares it against what the store actually counted.
 | `fail-before-commit` | the store throws before writing; nothing may be lost |
 | `fail-after-commit` | the store **writes**, then the process dies before the offset commit |
 
+Verified in CI on every push, against both the in-process stack **and** a real Redpanda
+broker with a real Postgres: **5/5 exact** in both, drift `+0`.
+
 `fail-after-commit` is the one that matters. The batch is durably applied and then the
 acknowledgement never happens, so the bus redelivers work that is already done. An aggregator
 that trusts its delivery semantics double-counts here. Only the store's idempotency claim
@@ -175,6 +178,13 @@ CI runs lint, types, unit tests, a short load smoke pass, and the exactness harn
 the in-process stack on every push — then runs the same harness again against a real Redpanda
 broker and a real Postgres, because proving the claim only against the test double would
 prove it about the test double.
+
+That second job earned its keep on the first run. The harness was handing its per-scenario
+topic and consumer-group overrides to the store, which does not read them, while the bus got
+the base config — so all five scenarios shared one topic and counted each other's events. It
+reported 1/5 with drifts of +3000, +1137, +162 and +617. The in-process bus could never
+surface it: it is a fresh object per scenario, so a topic name means nothing to it. Only a
+log that outlives the process could.
 
 ## Limitations
 
