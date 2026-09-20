@@ -132,14 +132,23 @@ interface Outcome {
   pass: boolean;
 }
 
+/** Distinguishes topics between runs: a Kafka log survives the process that wrote it. */
+const runId = Date.now().toString(36);
+
 async function runScenario(scenario: Scenario, uniqueCount: number): Promise<Outcome> {
   const config = loadConfig();
-  const bus = makeBus(config);
+  // Each scenario needs its own topic and consumer group. Sharing them lets one scenario's
+  // events be counted by the next, which is invisible against the in-process bus -- that one
+  // is constructed fresh per scenario, so a "topic name" means nothing to it -- and shows up
+  // immediately against a real broker, where the log outlives the run.
+  const bus = makeBus({
+    ...config,
+    kafkaTopic: `${config.kafkaTopic}-${scenario.name}-${runId}`,
+    kafkaGroupId: `${config.kafkaGroupId}-${scenario.name}-${runId}`,
+  });
   const realStore = makeStore({
     ...config,
     sqlitePath: config.store === 'sqlite' ? `verify-${scenario.name}.db` : config.sqlitePath,
-    kafkaGroupId: `${config.kafkaGroupId}-verify-${scenario.name}`,
-    kafkaTopic: `${config.kafkaTopic}-verify-${scenario.name}`,
   });
   await realStore.init();
   await realStore.reset();

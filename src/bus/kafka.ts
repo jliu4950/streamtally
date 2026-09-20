@@ -37,10 +37,16 @@ export class KafkaBus implements Bus {
 
   async start(): Promise<void> {
     await this.admin.connect();
-    await this.admin.createTopics({
-      topics: [{ topic: this.topic, numPartitions: 3 }],
-      waitForLeaders: true,
-    });
+    try {
+      await this.admin.createTopics({
+        topics: [{ topic: this.topic, numPartitions: 3 }],
+        waitForLeaders: true,
+      });
+    } catch (error) {
+      // An existing topic is the normal case on restart; anything else is a real failure.
+      const message = error instanceof Error ? error.message : String(error);
+      if (!/already exists/i.test(message)) throw error;
+    }
     await this.producer.connect();
   }
 
