@@ -1,0 +1,84 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  check:
+    name: lint, types, tests, exactness (in-process)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build:web
+      - run: npm run verify:exactness
+        env:
+          VERIFY_EVENTS: '5000'
+      # Short smoke pass. A throughput number from a shared CI runner is not worth
+      # publishing, but "does it still count every event under load" is.
+      - run: npm run bench
+        env:
+          BENCH_DURATION: '3'
+
+  integration:
+    name: exactness on Kafka + Postgres
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: streamtally
+          POSTGRES_PASSWORD: streamtally
+          POSTGRES_DB: streamtally
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U streamtally"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # Redpanda needs a custom start command, which service containers cannot express, so
+      # it runs as a plain container instead.
+      - name: Start Redpanda
+        run: |
+          docker run -d --name redpanda -p 19092:19092 \
+            redpandadata/redpanda:v24.2.7 \
+            redpanda start --smp=1 --overprovisioned --node-id=0 --check=false \
+              --kafka-addr=PLAINTEXT://0.0.0.0:19092 \
+              --advertise-kafka-addr=PLAINTEXT://localhost:19092
+      - name: Wait for Redpanda
+        run: |
+          for attempt in $(seq 1 40); do
+            if docker exec redpanda rpk cluster health 2>/dev/null | grep -q 'Healthy:.*true'; then
+              echo "redpanda healthy after ${attempt} attempt(s)"; exit 0
+            fi
+            sleep 3
+          done
+          echo "redpanda did not become healthy"; docker logs redpanda; exit 1
+
+      - run: npm ci
+      # The claim this project makes is about behaviour under redelivery and failure. Proving
+      # it only against the in-process bus would prove it about the test double, not Kafka.
+      - name: Exactness against real infrastructure
+        run: npm run verify:exactness
+        env:
+          BUS: kafka
+          STORE: postgres
+          KAFKA_BROKERS: localhost:19092
+          DATABASE_URL: postgres://streamtally:streamtally@localhost:5432/streamtally
+          VERIFY_EVENTS: '3000'
+
+      - if: failure()
+        run: docker logs redpanda
