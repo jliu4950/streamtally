@@ -1,13 +1,12 @@
-import { MemoryBus } from './bus/memory.js';
 import { loadConfig } from './config.js';
+import { makeBus, makeStore } from './factory.js';
 import { Aggregator } from './pipeline/aggregator.js';
 import { buildServer } from './server.js';
-import { SqliteStore } from './store/sqlite.js';
 
 async function main(): Promise<void> {
   const config = loadConfig();
-  const bus = new MemoryBus(config.batchSize, config.batchLingerMs);
-  const store = new SqliteStore(config.sqlitePath);
+  const bus = makeBus(config);
+  const store = makeStore(config);
 
   await store.init();
   await bus.start();
@@ -22,7 +21,7 @@ async function main(): Promise<void> {
   });
 
   await app.listen({ port: config.port, host: '0.0.0.0' });
-  console.log(`streamtally listening on :${config.port}`);
+  console.log(`streamtally listening on :${config.port} (bus=${config.bus} store=${config.store})`);
 
   const shutdown = async (signal: string) => {
     console.log(`\n${signal} received, draining`);

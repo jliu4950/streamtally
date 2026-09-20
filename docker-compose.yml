@@ -1,0 +1,43 @@
+# Full-fat mode: a real Kafka-protocol broker and a real Postgres.
+#
+#   docker compose up -d
+#   BUS=kafka STORE=postgres npm start
+#
+# Everything also runs without this file -- `npm run demo` uses an in-process bus and Node's
+# built-in SQLite. The abstraction is not decoration: the same exactness harness runs against
+# both, and CI runs it against this stack.
+services:
+  redpanda:
+    image: redpandadata/redpanda:v24.2.7
+    container_name: streamtally-redpanda
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --overprovisioned
+      - --node-id=0
+      - --check=false
+      - --kafka-addr=PLAINTEXT://0.0.0.0:19092
+      - --advertise-kafka-addr=PLAINTEXT://localhost:19092
+    ports:
+      - '19092:19092'
+    healthcheck:
+      test: ['CMD-SHELL', 'rpk cluster health | grep -q "Healthy:.*true"']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: streamtally-postgres
+    environment:
+      POSTGRES_USER: streamtally
+      POSTGRES_PASSWORD: streamtally
+      POSTGRES_DB: streamtally
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U streamtally']
+      interval: 5s
+      timeout: 5s
+      retries: 20
