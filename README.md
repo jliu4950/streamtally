@@ -188,6 +188,18 @@ log that outlives the process could.
 
 ## Limitations
 
+- **A poison message stalls the pipeline permanently.** There is no dead-letter queue. A
+  batch that always throws is redelivered forever, and everything behind it waits. Measured:
+  publish one event with an unparseable `occurredAt` followed by 50 valid ones, and after
+  three seconds the queue is 51 deep and nothing has been counted. HTTP ingest validates
+  timestamps so this cannot enter that way, but anything published straight to the topic can.
+  The fix is a retry ceiling per batch and a dead-letter topic; deliberately not faked here.
+- **Summed values are `DOUBLE PRECISION`.** Floating-point accumulation drifts over millions
+  of events, which is why the exactness harness compares totals with a `1e-6` tolerance while
+  comparing counts exactly. Anything money-shaped wants integer minor units or `NUMERIC`.
+- **Each SSE client polls the database independently.** One `setInterval` per connection, so
+  the query load grows linearly with open dashboards. One ticker broadcasting to all
+  subscribers is the obvious fix.
 - **Aggregation is minute-granular and append-only.** No late-arriving-data policy, no
   watermarks, no windowing beyond a fixed bucket. An event that shows up an hour late lands
   in its true minute and silently changes a bucket the dashboard has already drawn.
