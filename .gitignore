@@ -1,0 +1,10 @@
+node_modules/
+dist/
+web/dist/
+*.db
+*.db-*
+.env
+.env.*
+!.env.example
+bench/results/
+coverage/
