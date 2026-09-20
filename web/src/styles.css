@@ -1,0 +1,282 @@
+/*
+ * Colour roles come from a validated palette: every data-mark colour below passed the
+ * lightness-band, chroma, CVD-separation, normal-vision and contrast checks against both
+ * surfaces. Dark mode is a selected set of steps for the dark surface, not an inverted
+ * light mode.
+ */
+:root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --plane: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+  --series-1: #2a78d6;
+  --series-1-fill: rgba(42, 120, 214, 0.14);
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-critical: #d03b3b;
+  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --plane: #0d0d0d;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.1);
+    --series-1: #3987e5;
+    --series-1-fill: rgba(57, 135, 229, 0.18);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--plane);
+  color: var(--text-primary);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 32px 24px 56px;
+}
+
+header.masthead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+h1 {
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 6px 0 24px;
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.chip {
+  font-size: 12px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  background: var(--surface-1);
+}
+
+.chip.live::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: 1px;
+  background: var(--status-good);
+}
+
+.chip.stale::before {
+  background: var(--text-muted);
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tile {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+
+.tile-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tile-value {
+  font-size: 30px;
+  line-height: 1.15;
+  margin-top: 8px;
+  letter-spacing: -0.02em;
+}
+
+.tile-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Status never rides on colour alone: every state ships with this glyph and a word. */
+.status-icon {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.status-good {
+  color: var(--status-good);
+}
+.status-warning {
+  color: var(--status-warning);
+}
+.status-critical {
+  color: var(--status-critical);
+}
+
+.panels {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 860px) {
+  .panels {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.panel h2 {
+  font-size: 14px;
+  margin: 0 0 2px;
+}
+
+.panel .hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 16px;
+}
+
+.empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 32px 0;
+  text-align: center;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.bar-name {
+  color: var(--text-primary);
+}
+
+.bar-value {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-track {
+  grid-column: 1 / -1;
+  height: 8px;
+  background: var(--grid);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--series-1);
+  border-radius: 4px;
+}
+
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.tooltip .tooltip-time {
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.chart-wrap {
+  position: relative;
+}
+
+footer.note {
+  margin-top: 24px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+table.data-view {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 12px;
+}
+
+table.data-view th,
+table.data-view td {
+  text-align: left;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--grid);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+details.table-toggle summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 12px;
+}
